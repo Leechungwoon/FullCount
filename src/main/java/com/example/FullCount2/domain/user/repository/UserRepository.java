@@ -4,7 +4,7 @@ import com.example.FullCount2.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    boolean exitsByEmail(String email);
+    boolean existsByEmail(String email);
 
-    boolean exitsByPhone(String phone);
+    boolean existsByPhone(String phone);
 }

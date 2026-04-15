@@ -16,12 +16,12 @@ public class AuthService {
     public AuthSignResponse signup(AuthSignRequest request) {
 
         //이메일 중복 여부 체크
-        boolean exitsEmail = userRepository.exitsByEmail(request.getEmail());
+        boolean exitsEmail = userRepository.existsByEmail(request.getEmail());
 
         if (exitsEmail) throw new RuntimeException("중복된 이메일 입니다.");
 
         //전화 번호 중복 체크
-        boolean exitsPhone = userRepository.exitsByPhone(request.getPhone());
+        boolean exitsPhone = userRepository.existsByPhone(request.getPhone());
 
         if (exitsPhone) throw new RuntimeException("중복된 전화번호입니다.");
 
