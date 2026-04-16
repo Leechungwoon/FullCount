@@ -25,4 +25,8 @@ public class CommonResponse<T> {
     public static <T> CommonResponse error(String message) {
         return new CommonResponse(false, message, null);
     }
+
+    public static CommonResponse<Void> success(String message) {
+        return new CommonResponse<>(true, message, null);
+    }
 }

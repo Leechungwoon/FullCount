@@ -22,10 +22,9 @@ public class AuthSignResponse {
     private LocalDateTime createAt;
 
     @Builder
-    public AuthSignResponse(Long id, String email, String password, String phone, String address, String birth, UserRole role, LocalDateTime createAt) {
+    public AuthSignResponse(Long id, String email, String phone, String address, String birth, UserRole role, LocalDateTime createAt) {
         this.id = id;
         this.email = email;
-        this.password = password;
         this.phone = phone;
         this.address = address;
         this.birth = birth;
@@ -37,7 +36,6 @@ public class AuthSignResponse {
         return AuthSignResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .password(user.getPassword())
                 .phone(user.getPhone())
                 .address(user.getAddress())
                 .birth(user.getBirth())

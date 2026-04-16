@@ -45,13 +45,18 @@ public class User extends BaseEntity {
     private boolean isDeleted = false;
 
     @Builder
-    public User(String email, String password, String nickname, String phone, String address, String birth) {
+    public User(String email, String password, String nickname, String phone, String address, String birth, UserRole role) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
         this.phone = phone;
         this.address = address;
         this.birth = birth;
+        this.role = role;
     }
 
+    //소프트 삭제
+    public void softDelete(boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
 }
