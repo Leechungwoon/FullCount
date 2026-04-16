@@ -37,13 +37,15 @@ public class SecurityConfig {
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        http.securityContext(securityContext -> securityContext.requireExplicitSave(false));
+
         //경로별 접근 권한 설정
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST,
-                        "/auth/signup",
-                        "/auth/login").permitAll()
-                .requestMatchers(HttpMethod.DELETE,"/auth/logout")
-                .permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/games/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/games").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/auth/logout").permitAll()
+                .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated());
 
         //JWFilter를 Security 필터 체인에 등록

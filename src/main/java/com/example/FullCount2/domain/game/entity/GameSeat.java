@@ -36,6 +36,7 @@ public class GameSeat extends BaseEntity {
     private GameSeat(Game game, Seat seat) {
         this.game = game;
         this.seat = seat;
+        this.status = "AVAILABLE"; //기본값 명시적으로 설정
     }
 
     public void updateStatus(String status) {
