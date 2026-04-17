@@ -28,9 +28,7 @@ public class ReservationService {
     private final UserRepository userRepository;
 
     //예매 서비스
-
     //좌석 선택 및 선점 석택->HELD 변환
-
     @Transactional
     public ReservationHeldResponse reservationSelection(Long userId, Long gameSeatId) {
 
@@ -71,6 +69,28 @@ public class ReservationService {
         return ReservationHeldResponse.from(reservation);
     }
 
+    // 예매 취소
+    @Transactional
+    public void cancel(Long userId, Long reservationId) {
 
+        //예매 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
 
+        //본인 예매 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+
+        //이미 취소된 예매인지 확인
+        if (reservation.getStatus().equals("CANCEL")) {
+            throw new IllegalArgumentException("이미 취소된 예매입니다.");
+        }
+
+        //예매 상태 변경
+        reservation.cancel();
+
+        //좌석 상태 변경
+        reservationSeatRepository.findByReservationId(reservationId)
+                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.SOLD));
+    }
 }
