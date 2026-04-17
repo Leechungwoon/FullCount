@@ -1,6 +1,5 @@
 package com.example.FullCount2.domain.game.model.reponse;
 
-import com.example.FullCount2.domain.game.entity.Game;
 import com.example.FullCount2.domain.game.entity.GameSeat;
 import lombok.Builder;
 import lombok.Getter;
