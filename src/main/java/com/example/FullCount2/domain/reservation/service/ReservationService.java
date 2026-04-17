@@ -93,4 +93,23 @@ public class ReservationService {
         reservationSeatRepository.findByReservationId(reservationId)
                 .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
     }
+
+    //입금 확인 (관리자용)
+    @Transactional
+    public void confirm(Long reservationId) {
+        //예매 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
+
+        //HELD 상태 확인
+        if (!reservation.getStatus().equals("HELD")) {
+            throw new IllegalArgumentException("HELD 상태에서 확정가능합니다.");
+        }
+
+        //예매 상태를 CONFIRM로 변경
+        reservation.confirm();
+
+        //해당 예매 좌석들을 SOLD로 변경
+        reservationSeatRepository.findByReservationId(reservationId);
+    }
 }
