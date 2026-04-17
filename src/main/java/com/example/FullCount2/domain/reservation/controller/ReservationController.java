@@ -20,10 +20,10 @@ public class ReservationController {
     public ResponseEntity<CommonResponse> reservationSelectionApi(@AuthenticationPrincipal Long userId, @RequestParam Long gameSeatId) {
 
         //핵심 비지니스
-        ReservationHeldResponse response = reservationService.reservationSelection(userId,gameSeatId);
+        ReservationHeldResponse response = reservationService.reservationSelection(userId, gameSeatId);
 
         //응답 반환
-        return ResponseEntity.ok(CommonResponse.success("예매 선정됐습니다.",response));
+        return ResponseEntity.ok(CommonResponse.success("예매 선정됐습니다.", response));
     }
 
     //예매 취소 API
@@ -35,5 +35,14 @@ public class ReservationController {
 
         //응답 반환
         return ResponseEntity.ok(CommonResponse.success("예매가 취소됐습니다."));
+    }
+
+    //입금 확인(관리자용)
+    @PatchMapping("/{reservationId}/confirm")
+    public ResponseEntity<CommonResponse> confirmApi(@PathVariable Long reservationId) {
+
+        reservationService.confirm(reservationId);
+
+        return ResponseEntity.ok(CommonResponse.success("입금 확인됐습니다."));
     }
 }
