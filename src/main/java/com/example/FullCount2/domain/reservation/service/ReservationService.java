@@ -91,6 +91,6 @@ public class ReservationService {
 
         //좌석 상태 변경
         reservationSeatRepository.findByReservationId(reservationId)
-                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.SOLD));
+                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
     }
 }
