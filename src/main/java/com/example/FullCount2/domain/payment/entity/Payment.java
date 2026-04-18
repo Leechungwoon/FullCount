@@ -42,10 +42,22 @@ public class Payment extends BaseEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime paidAt;
 
+    @Column(nullable = false, length = 20)
+    private String bankName;
+
+    @Column(nullable = false, length = 50)
+    private String accountNumber;
+
+    @Column(nullable = false, length = 20)
+    private String accountHolder;
+
     @Builder
-    private Payment(Reservation reservation, int amount) {
+    private Payment(Reservation reservation, int amount, String bankName, String accountNumber, String accountHolder) {
         this.reservation = reservation;
         this.amount = amount;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
     }
 
     public void complete(String paymentKey) {

@@ -17,6 +17,9 @@ public class PaymentCreateResponse {
     private final String status; //PENDING / COMPLETED / CANCELED
     private final PaymentMethod method; // 결제 방식 (BANK_TRANSFER)
     private LocalDateTime paidAt; // 입금 완료 시간 (PENDING = NULL 반환)
+    private String bankName; //은행명
+    private String accountNumber; //계좌 번호
+    private String accountHolder; //예금주
 
     public static PaymentCreateResponse from(Payment payment) {
         return PaymentCreateResponse.builder()
@@ -26,6 +29,9 @@ public class PaymentCreateResponse {
                 .status(payment.getStatus())
                 .method(payment.getMethod())
                 .paidAt(payment.getPaidAt())
+                .bankName(payment.getBankName())
+                .accountNumber(payment.getAccountNumber())
+                .accountHolder(payment.getAccountHolder())
                 .build();
     }
 }

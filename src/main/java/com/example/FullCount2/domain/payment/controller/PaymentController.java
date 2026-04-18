@@ -26,5 +26,14 @@ public class PaymentController {
         return ResponseEntity.ok(CommonResponse.success("무통장이 생성됐습니다.", response));
     }
 
+    //입금 확인(관리자 전용)
+    @PatchMapping("{paymentId}/confirm")
+    public ResponseEntity<CommonResponse> confirmPaymentApi(@PathVariable Long paymentId) {
 
+        //핵심 비지니스
+        paymentService.confirmPayment(paymentId);
+
+        //응답 반환
+        return ResponseEntity.ok(CommonResponse.success("입금이 확인됐습니다."));
+    }
 }
