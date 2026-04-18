@@ -1,6 +1,7 @@
 package com.example.FullCount2.domain.payment.entity;
 
 import com.example.FullCount2.common.enums.PaymentMethod;
+import com.example.FullCount2.common.enums.PaymentStatus;
 import com.example.FullCount2.common.global.BaseEntity;
 import com.example.FullCount2.domain.reservation.entity.Reservation;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -27,13 +28,14 @@ public class Payment extends BaseEntity {
     private Reservation reservation;
 
     @Column(unique = true, length = 200)
-    private String paymentKey; // Toss 결제 고유키
+    private String paymentKey; // Toss 결제 고유키 (고도화 예정)
 
     @Column(nullable = false)
     private int amount;
 
     @Column(nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING / DONE / CANCELLED
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status; // PENDING / DONE / CANCELLED
 
     @Column(nullable = false, length = 30)
     @Enumerated(EnumType.STRING)
@@ -42,18 +44,31 @@ public class Payment extends BaseEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime paidAt;
 
+    @Column(nullable = false, length = 20)
+    private String bankName;
+
+    @Column(nullable = false, length = 50)
+    private String accountNumber;
+
+    @Column(nullable = false, length = 20)
+    private String accountHolder;
+
     @Builder
-    private Payment(Reservation reservation, int amount) {
+    private Payment(Reservation reservation, int amount, String bankName, String accountNumber, String accountHolder) {
         this.reservation = reservation;
         this.amount = amount;
+        this.status = PaymentStatus.PENDING;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
     }
 
     public void complete(String paymentKey) {
         this.paymentKey = paymentKey;
-        this.status = "DONE";
+        this.status = PaymentStatus.COMPLETED;
     }
 
     public void cancel() {
-        this.status = "CANCELLED";
+        this.status = PaymentStatus.CANCELED;
     }
 }
