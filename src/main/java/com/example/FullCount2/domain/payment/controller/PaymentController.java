@@ -36,4 +36,15 @@ public class PaymentController {
         //응답 반환
         return ResponseEntity.ok(CommonResponse.success("입금이 확인됐습니다."));
     }
+
+    //입금 취소
+    @DeleteMapping("/{paymentId}/cancel")
+    public ResponseEntity<CommonResponse> cancelPaymentApi(@PathVariable Long paymentId) {
+
+        //핵심 비지니스
+        paymentService.cancelPayment(paymentId);
+
+        //응답 반환
+        return ResponseEntity.ok(CommonResponse.success("입금이 취소됐습니다."));
+    }
 }
