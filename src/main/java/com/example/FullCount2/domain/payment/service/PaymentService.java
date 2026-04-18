@@ -86,6 +86,7 @@ public class PaymentService {
     }
 
     //결제 취소
+    @Transactional
     public void cancelPayment(Long paymentId) {
 
         //결제 조회
@@ -97,8 +98,11 @@ public class PaymentService {
             throw new IllegalArgumentException("대기중인 결제만 취소할 수 있습니다.");
 
         //결제 취소
-        Reservation reservation = payment.getReservation();
         payment.cancel();
+
+        //예매취소
+        Reservation reservation = payment.getReservation();
+        reservation.cancel();
 
         //좌석 AVAILABLE 변경
         reservationSeatRepository.findByReservationId(reservation.getId())
