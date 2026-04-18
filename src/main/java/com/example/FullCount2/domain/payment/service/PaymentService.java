@@ -1,6 +1,8 @@
 package com.example.FullCount2.domain.payment.service;
 
 import com.example.FullCount2.common.enums.GameSeatStatus;
+import com.example.FullCount2.common.enums.PaymentStatus;
+import com.example.FullCount2.common.enums.ReservationStatus;
 import com.example.FullCount2.domain.payment.entity.Payment;
 import com.example.FullCount2.domain.payment.modle.PaymentCreateRequest;
 import com.example.FullCount2.domain.payment.modle.PaymentCreateResponse;
@@ -42,7 +44,7 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
 
         //HELD 상태인지 확인(선점된 예매만 결제 가능)
-        if (!reservation.getStatus().equals("HELD")) {
+        if (!reservation.getStatus().equals(ReservationStatus.HELD)) {
             throw new IllegalArgumentException("선점된 상태에서만 결제 가능합니다.");
         }
 
@@ -67,7 +69,7 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다."));
 
         //PENDING 상태인지 확인
-        if (!payment.getStatus().equals("PENDING")) {
+        if (!payment.getStatus().equals(PaymentStatus.PENDING)) {
             throw new IllegalArgumentException("대기중인 결제만 확인할 수 있습니다.");
         }
 
@@ -81,5 +83,25 @@ public class PaymentService {
         // 좌석 SOLD
         reservationSeatRepository.findByReservationId(reservation.getId())
                 .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.SOLD));
+    }
+
+    //결제 취소
+    public void cancelPayment(Long paymentId) {
+
+        //결제 조회
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다."));
+
+        //PENDING 상태 확인
+        if (payment.getStatus().equals(PaymentStatus.PENDING))
+            throw new IllegalArgumentException("대기중인 결제만 취소할 수 있습니다.");
+
+        //결제 취소
+        Reservation reservation = payment.getReservation();
+        payment.cancel();
+
+        //좌석 AVAILABLE 변경
+        reservationSeatRepository.findByReservationId(reservation.getId())
+                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
     }
 }

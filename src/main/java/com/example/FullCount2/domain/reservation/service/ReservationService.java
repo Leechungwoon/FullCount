@@ -1,6 +1,7 @@
 package com.example.FullCount2.domain.reservation.service;
 
 import com.example.FullCount2.common.enums.GameSeatStatus;
+import com.example.FullCount2.common.enums.ReservationStatus;
 import com.example.FullCount2.domain.game.entity.GameSeat;
 import com.example.FullCount2.domain.game.reposiroty.GameSeatRepository;
 import com.example.FullCount2.domain.reservation.entity.Reservation;
@@ -82,7 +83,7 @@ public class ReservationService {
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
 
         //이미 취소된 예매인지 확인
-        if (reservation.getStatus().equals("CANCEL")) {
+        if (reservation.getStatus().equals(ReservationStatus.CANCELLED)) {
             throw new IllegalArgumentException("이미 취소된 예매입니다.");
         }
 
@@ -92,24 +93,5 @@ public class ReservationService {
         //좌석 상태 변경
         reservationSeatRepository.findByReservationId(reservationId)
                 .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
-    }
-
-    //입금 확인 (관리자용)
-    @Transactional
-    public void confirm(Long reservationId) {
-        //예매 조회
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
-
-        //HELD 상태 확인
-        if (!reservation.getStatus().equals("HELD")) {
-            throw new IllegalArgumentException("HELD 상태에서 확정가능합니다.");
-        }
-
-        //예매 상태를 CONFIRM로 변경
-        reservation.confirm();
-
-        //해당 예매 좌석들을 SOLD로 변경
-        reservationSeatRepository.findByReservationId(reservationId);
     }
 }

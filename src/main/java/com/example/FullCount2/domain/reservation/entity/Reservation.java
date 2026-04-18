@@ -1,5 +1,6 @@
 package com.example.FullCount2.domain.reservation.entity;
 
+import com.example.FullCount2.common.enums.ReservationStatus;
 import com.example.FullCount2.common.global.BaseEntity;
 import com.example.FullCount2.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -25,7 +26,8 @@ public class Reservation extends BaseEntity {
     private User user;
 
     @Column(nullable = false, length = 20)
-    private String status = "HELD"; // HELD / CONFIRMED / CANCELLED
+    @Enumerated(EnumType.STRING)
+    private ReservationStatus status; // HELD / CONFIRMED / CANCELLED
 
     @Column(nullable = false)
     private LocalDateTime reservedAt;
@@ -35,16 +37,17 @@ public class Reservation extends BaseEntity {
     @Builder
     private Reservation(User user, LocalDateTime expiredAt) {
         this.user = user;
+        this.status = ReservationStatus.HELD;
         this.reservedAt = LocalDateTime.now();
         this.expiredAt = expiredAt;
     }
 
     public void confirm() {
-        this.status = "CONFIRMED";
+        this.status = ReservationStatus.CONFIRMED;
         this.expiredAt = null;
     }
 
     public void cancel() {
-        this.status = "CANCELLED";
+        this.status = ReservationStatus.CANCELLED;
     }
 }
