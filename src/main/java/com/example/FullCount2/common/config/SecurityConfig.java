@@ -41,7 +41,7 @@ public class SecurityConfig {
 
         //경로별 접근 권한 설정
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/login","/payments").permitAll()
                 .requestMatchers(HttpMethod.GET, "/games/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/games").permitAll()
                 .requestMatchers(HttpMethod.DELETE, "/auth/logout").permitAll()
