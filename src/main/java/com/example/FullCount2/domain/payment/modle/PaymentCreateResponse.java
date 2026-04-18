@@ -1,6 +1,7 @@
 package com.example.FullCount2.domain.payment.modle;
 
 import com.example.FullCount2.common.enums.PaymentMethod;
+import com.example.FullCount2.common.enums.PaymentStatus;
 import com.example.FullCount2.domain.payment.entity.Payment;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,7 @@ public class PaymentCreateResponse {
     private final Long id; //결제 Id
     private final Long reservationId; //예매 Id
     private final int amount; // 결제 금액
-    private final String status; //PENDING / COMPLETED / CANCELED
+    private final PaymentStatus status; //PENDING / COMPLETED / CANCELED
     private final PaymentMethod method; // 결제 방식 (BANK_TRANSFER)
     private LocalDateTime paidAt; // 입금 완료 시간 (PENDING = NULL 반환)
     private String bankName; //은행명
