@@ -94,7 +94,7 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다."));
 
         //PENDING 상태 확인
-        if (payment.getStatus().equals(PaymentStatus.PENDING))
+        if (!payment.getStatus().equals(PaymentStatus.PENDING))
             throw new IllegalArgumentException("대기중인 결제만 취소할 수 있습니다.");
 
         //결제 취소
