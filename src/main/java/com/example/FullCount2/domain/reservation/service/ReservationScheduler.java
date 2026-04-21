@@ -1,5 +1,6 @@
 package com.example.FullCount2.domain.reservation.service;
 
+import com.example.FullCount2.common.enums.ReservationStatus;
 import com.example.FullCount2.domain.reservation.entity.Reservation;
 import com.example.FullCount2.domain.reservation.reposiroty.ReservationRepository;
 import com.example.FullCount2.domain.reservation.reposiroty.ReservationSeatRepository;
@@ -29,7 +30,7 @@ public class ReservationScheduler {
         log.info("예매 만료 스케줄러 실행: {}", LocalDateTime.now());
 
         //만료된 HELD 예매 조회
-        List<Reservation> expiredReservations = reservationRepository.findExpiredReservation(LocalDateTime.now());
+        List<Reservation> expiredReservations = reservationRepository.findByStatusAndExpiredAtBefore(ReservationStatus.HELD, LocalDateTime.now());
 
         log.info("만료된 예매 수: {}", expiredReservations.size());
 
