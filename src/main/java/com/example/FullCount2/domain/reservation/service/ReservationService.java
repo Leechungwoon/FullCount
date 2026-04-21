@@ -94,4 +94,18 @@ public class ReservationService {
         reservationSeatRepository.findByReservationId(reservationId)
                 .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
     }
+
+    //스케줄러 전용 예매 취소(자정에 초기화)
+    @Transactional
+    public void cancelExpired(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
+
+        //예매 CANCEL 상태 변경
+        reservation.cancel();
+
+        //CANCEL로 예매 자리 AVAILABLE로 변경
+        reservationSeatRepository.findByReservationId(reservation.getId())
+                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
+    }
 }
