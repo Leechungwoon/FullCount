@@ -21,10 +21,8 @@
 | Framework | Spring Boot 3.5, Spring Security |
 | ORM | Spring Data JPA |
 | Database | MySQL 8 |
-
-| Auth | JWT (Access Token + Refresh Token) |
-| Infra | AWS EC2, Docker |
-| Load Test | JMeter |
+| Auth | JWT Access Token|
+| Load Test | JMeter, Postman |
 
 ---
 
@@ -74,13 +72,15 @@ public class GameSeat {
 
 ### JMeter 성능 테스트
 
-> 동시 사용자 N명이 동일 좌석에 요청하는 시나리오
+> 동시 사용자 100명이 동일 좌석에 요청하는 시나리오
 
-| 항목 | 결과 |
-|------|------|
-| 중복 예매 발생 | 0건 |
-
-> 📌 테스트 결과는 배포 후 실제 측정값으로 업데이트 예정
+| 항목 | 순차 요청 (Ramp-up 1s) | 동시 요청 (Ramp-up 0s) |
+|------|----------------------|----------------------|
+| 성공 | 1명 | 1명 |
+| 실패 | 99명 | 99명 |
+| 평균 응답시간 | 21ms | 109ms |
+| 최대 응답시간 | 159ms | 145ms |
+| 중복 예매 발생 | 0건 | 0건 |
 
 ---
 
@@ -188,4 +188,4 @@ git clone https://github.com/{your-username}/full-count.git
 
 | 이름 | 역할 | GitHub |
 |------|------|--------|
-| 이청운 | Backend | [@icheong-un](#) |
+| 이청운 | Backend |https://github.com/Leechungwoon|
