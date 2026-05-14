@@ -2,6 +2,7 @@ package com.example.FullCount2.domain.game.service;
 
 import com.example.FullCount2.domain.game.entity.Game;
 import com.example.FullCount2.domain.game.entity.GameSeat;
+import com.example.FullCount2.domain.game.model.reponse.GameResponse;
 import com.example.FullCount2.domain.game.reposiroty.GameRepository;
 import com.example.FullCount2.domain.game.reposiroty.GameSeatRepository;
 import lombok.AllArgsConstructor;
@@ -34,5 +35,14 @@ public class GameService {
     @Transactional(readOnly = true)
     public List<GameSeat> getGameStats(Long gameId, Long sectionId) {
         return gameSeatRepository.findByGameIdAndSeatSectionId(gameId, sectionId);
+    }
+
+    //홈팀 경기 조회
+    @Transactional(readOnly = true)
+    public List<GameResponse> getHomeTeamGameList(Long teamId) {
+        return gameRepository.findByFilters(teamId,null,null,null)
+                .stream()
+                .map(GameResponse::from)
+                .toList();
     }
 }
