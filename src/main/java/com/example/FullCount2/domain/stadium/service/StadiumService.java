@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class StadiumService {
@@ -25,5 +27,15 @@ public class StadiumService {
 
         //찾는 경기장 반환
         return GetStadiumResponse.from(foundStadium);
+    }
+
+    //경기장 전체 조회
+    @Transactional(readOnly = true)
+    public List<GetStadiumResponse> getStadiumList() {
+
+        return stadiumRepository.findAll()
+                .stream()
+                .map(GetStadiumResponse::from)
+                .toList();
     }
 }

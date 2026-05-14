@@ -8,14 +8,14 @@ import lombok.Getter;
 @Builder
 public class GetStadiumResponse {
 
-    private final Long id; //경기장 Id
+    private final Long stadiumId; //경기장 Id
     private final String name; // 경기장 이름
     private final String location; // 경기장 지역
     private final int totalCapacity; // 경기장 수용 인원
 
     public static GetStadiumResponse from(Stadium stadium) {
         return GetStadiumResponse.builder()
-                .id(stadium.getId())
+                .stadiumId(stadium.getId())
                 .name(stadium.getName())
                 .location(stadium.getLocation())
                 .totalCapacity(stadium.getTotalCapacity())

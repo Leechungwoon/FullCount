@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface StadiumRepository extends JpaRepository<Long, Stadium> {
+public interface StadiumRepository extends JpaRepository<Stadium, Long> {
 
     // 경기장 조회
     Optional<Stadium> findById(Long Id);
