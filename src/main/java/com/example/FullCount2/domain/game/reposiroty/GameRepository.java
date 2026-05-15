@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface GameRepository extends JpaRepository<Game, Long> {
 
@@ -22,4 +23,6 @@ public interface GameRepository extends JpaRepository<Game, Long> {
             @Param("stadiumId") Long stadiumId, //구장 ID 필터
             @Param("gameDate")LocalDate gameDate //경기 날짜 필터
             );
+
+    Optional<Game> findById(Long gameId);
 }
