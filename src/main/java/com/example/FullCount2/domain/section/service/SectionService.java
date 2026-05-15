@@ -4,7 +4,6 @@ import com.example.FullCount2.domain.game.entity.Game;
 import com.example.FullCount2.domain.game.reposiroty.GameRepository;
 import com.example.FullCount2.domain.section.modle.SectionResponse;
 import com.example.FullCount2.domain.section.reposiroty.SectionRepository;
-import com.example.FullCount2.domain.stadium.modle.GetStadiumResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
