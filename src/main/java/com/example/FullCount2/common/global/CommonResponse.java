@@ -14,18 +14,22 @@ public class CommonResponse<T> {
         this.data = data;
     }
 
+    // 성공 응답
     public static <T> CommonResponse<T> success(T data) {
         return new CommonResponse<>(true, "success", data);
     }
 
+    // 성공 응답(커스텀 메시지)
     public static <T> CommonResponse<T> success(String message, T data) {
         return new CommonResponse<>(true, message, data);
     }
 
+    // 실패 응답
     public static <T> CommonResponse error(String message) {
         return new CommonResponse(false, message, null);
     }
 
+    // 실패 응답(데이터 포함)
     public static CommonResponse<Void> success(String message) {
         return new CommonResponse<>(true, message, null);
     }
