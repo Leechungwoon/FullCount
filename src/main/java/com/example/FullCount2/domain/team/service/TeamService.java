@@ -2,7 +2,6 @@ package com.example.FullCount2.domain.team.service;
 
 import com.example.FullCount2.domain.team.modle.GetTeamResponse;
 import com.example.FullCount2.domain.team.repository.TeamRepository;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
