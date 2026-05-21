@@ -108,4 +108,23 @@ public class PaymentService {
         reservationSeatRepository.findByReservationId(reservation.getId())
                 .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.AVAILABLE));
     }
+
+
+    @Transactional
+    public void confirmPaymentByOrderId(String orderId){
+        Payment payment = paymentRepository.findByReservationOrderId(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+
+        if (!payment.getStatus().equals(PaymentStatus.PENDING)) {
+            throw new IllegalArgumentException("대기중인 결제만 확인할 수 있습니다.");
+        }
+        payment.complete(payment.getPaymentKey());
+
+        // reservation 변수 선언 추가
+        Reservation reservation = payment.getReservation();
+        reservation.confirm();
+
+        reservationSeatRepository.findByReservationId(reservation.getId())
+                .forEach(rs -> rs.getGameSeat().updateStatus(GameSeatStatus.SOLD));
+    }
 }
