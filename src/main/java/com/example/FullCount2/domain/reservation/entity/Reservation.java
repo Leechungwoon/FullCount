@@ -21,6 +21,9 @@ public class Reservation extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String orderId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -35,8 +38,9 @@ public class Reservation extends BaseEntity {
     private LocalDateTime expiredAt; // HELD 만료 시각 (5분)
 
     @Builder
-    private Reservation(User user, LocalDateTime expiredAt) {
+    private Reservation(User user, String orderId, LocalDateTime expiredAt) {
         this.user = user;
+        this.orderId = orderId;
         this.status = ReservationStatus.HELD;
         this.reservedAt = LocalDateTime.now();
         this.expiredAt = expiredAt;
