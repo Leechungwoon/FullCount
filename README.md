@@ -35,6 +35,7 @@
 - JMeter 테스트에서 완전 동시 환경(Ramp-up 0초)에서도 동일 결과 확인
 - 응답시간 21ms → 109ms 증가 분석을 통해 낙관적 락의 한계 도출
 - Toss Payments 샌드박스 연동 후 결제-예매 상태 일관성 검증
+- 스케줄러 N+1 문제 발견 및 벌크 업데이트 적용 → 쿼리 13번 → 2번으로 감소
 
 <br>
 
@@ -79,6 +80,126 @@
 
 <br>
 
+## 💡 기술적 의사 결정
+
+### 1. 무통장 결제 기반 좌석 선점 구조
+
+**문제:** 결제 완료 전에도 좌석을 임시 확보해야 하는 요구사항 존재
+
+**해결:** `Reservation`과 `GameSeat` 상태를 분리하여 `HELD` 상태 도입
+
+**이유:**
+- 결제 지연 상황에서도 좌석 중복 예약 방지
+- 결제 완료 여부와 좌석 점유 상태를 독립적으로 관리 가능
+
+**정상 결제 흐름**
+```
+좌석 선택 → 무통장 선택(HELD 전환) → 좌석 선점 → 입금 대기 → 입금 확인 → 예매 확정
+```
+
+**미입금 만료 흐름**
+```
+좌석 선택 → 무통장 선택(HELD 전환) → 좌석 선점 → 입금 대기
+→ 당일 23:59:59까지 미입금 → AVAILABLE 복구 → 다른 사용자 선점 가능
+```
+
+---
+
+### 2. 낙관적 락 (@Version) 선택
+
+**문제:** 동일 좌석에 대한 동시 선점 요청 시 충돌 발생
+
+**해결:** `@Version` 기반 낙관적 락 적용
+
+**이유:**
+- 선점 순간에만 충돌 발생 → 지속적인 락 불필요
+- DB 락을 점유하지 않아 성능에 유리
+- 현재 트래픽 규모에서 단순하고 효율적인 방식
+
+```
+사용자 A, B가 동시에 같은 좌석 선점 시도
+→ A가 먼저 version = 1로 UPDATE 성공
+→ B는 version 불일치 → OptimisticLockException
+→ B에게 "이미 선점된 좌석입니다" 반환
+```
+
+---
+
+### 3. 스케줄러 처리 방식 — 벌크 UPDATE 선택
+
+**문제:** 만료 예매 처리 시 N+1 문제로 쿼리 13번 발생
+
+**해결:** 반복문 제거 후 `@Modifying` 벌크 UPDATE 적용
+
+**이유:**
+- 해당 로직은 조회가 아닌 상태 변경(batch) 작업
+- 객체를 조회할 필요 없이 DB에서 한 번에 처리 가능
+- 쿼리 수를 N → 1로 줄여 성능 개선
+
+---
+
+## 도메인 설계
+### 상태 정의
+
+**GameSeat 상태**
+
+| 상태 | 의미 |
+|------|------|
+| `AVAILABLE` | 예매 가능 |
+| `HELD` | 선점됨 (결제 대기 중) |
+| `SOLD` | 결제 완료 |
+
+**Reservation 상태**
+
+| 상태 | 의미 |
+|------|------|
+| `HELD` | 선점 (입금 대기) |
+| `CONFIRMED` | 입금 확인 완료 |
+| `CANCELLED` | 취소 또는 미입금 만료 |
+
+**Payment 상태**
+
+| 상태 | 의미 |
+|------|------|
+| `PENDING` | 입금 대기 (무통장 선택 시 생성) |
+| `COMPLETED` | 입금 확인 완료 |
+| `CANCELED` | 결제 취소 |
+
+---
+
+### DB 저장 시점
+
+**좌석 선점 시**
+```
+game_seats.status      = 'HELD'       ← 저장 O
+reservations.status    = 'HELD'       ← 저장 O
+reservations.expiredAt = 23:59:59     ← 저장 O
+payments 테이블                       ← 저장 X (아직 생성 안 함)
+```
+
+**무통장 선택 시 (createPayment)**
+```
+payments.status = 'PENDING'           ← 저장 O (입금 대기 상태로 생성)
+payments.paidAt = null                ← 입금 확인 전까지 null
+```
+
+**입금 확인 시 (confirmPayment — 단일 트랜잭션)**
+```
+payments.status      PENDING → COMPLETED  ← 업데이트
+reservations.status  HELD    → CONFIRMED  ← 업데이트
+game_seats.status    HELD    → SOLD       ← 업데이트
+```
+
+**미입금 만료 시 (자정 스케줄러)**
+```
+game_seats.status    = 'AVAILABLE'  ← 업데이트
+reservations.status  = 'CANCELLED'  ← 업데이트
+```
+
+
+
+<br>
+
 ## 🏗 핵심 기능
 
 ### 1. 동시성 제어 — 낙관적 락 (@Version)
@@ -92,7 +213,7 @@ public class GameSeat {
     @Version
     private Integer version;  // JPA 낙관적 락 적용
 
-    private SeatStatus status; // AVAILABLE → HELD → CONFIRMED
+    private GameSeatStatus status; // AVAILABLE → HELD → SOLD
 }
 ```
 
@@ -111,22 +232,27 @@ public class GameSeat {
 
 #### 보조 기능 — 좌석 자동 만료 (@Scheduled)
 
-선점(HELD) 후 결제 미완료 좌석을 1분 주기로 스캔해 자동 원상복구
+선점(HELD) 후 당일 자정까지 미결제 시 좌석 자동 원상복구
 
 ```java
-@Scheduled(fixedRate = 60000)
-public void expireHeldSeats() {
-    LocalDateTime expiredBefore = LocalDateTime.now().minusMinutes(10);
-    reservationRepository
-        .findByStatusAndCreatedAtBefore(ReservationStatus.HELD, expiredBefore)
-        .forEach(r -> {
-            r.updateStatus(ReservationStatus.CANCELLED);
-            r.getGameSeat().updateStatus(SeatStatus.AVAILABLE);
-        });
+// 매일 자정 실행: 당일 결제 미완료 HELD 예매 일괄 취소
+@Scheduled(cron = "0 0 0 * * *")
+@Transactional
+public void cancelExpiredReservation() {
+
+    LocalDateTime now = LocalDateTime.now();
+
+    // Step 1: 만료 HELD 예매에 연결된 GameSeat 먼저 AVAILABLE 복구
+    int restoredSeats = reservationSeatRepository.bulkRestoreExpiredGameSeats(now);
+    log.info("좌석 복구 완료: {}건", restoredSeats);
+
+    // Step 2: 만료 HELD 예매 CANCELLED로 일괄 변경
+    int cancelledCount = reservationRepository.bulkCancelExpired(now);
+    log.info("예매 취소 완료: {}건", cancelledCount);
 }
 ```
 
-> 고도화 방향: Redis TTL 이벤트 방식으로 전환 → 만료 순간에만 처리, DB 전체 스캔 제거
+> GameSeat 먼저 처리하는 이유: 서브쿼리 조건이 HELD 기준이므로 Reservation 취소 전에 실행해야 대상이 잡힘
 
 <br>
 
@@ -178,11 +304,9 @@ GET /games/search                ← 파라미터 없으면 전체 조회
 
 ## 🗂 ERD (주요 엔티티 관계)
 
-```
-User ──< Reservation >── GameSeat ──< Game
-                │
-                └──< Payment
-```
+User ──< Reservation ──< ReservationSeat >── GameSeat ──< Game
+                        │
+                        └── Payment
 
 | 엔티티 | 역할 |
 |--------|------|
@@ -209,7 +333,7 @@ User ──< Reservation >── GameSeat ──< Game
 ## 📁 패키지 구조
 
 ```
-src/main/java/com/fullcount/
+src/main/java/com/example/FullCount2/
 ├── auth/          # JWT 필터, Spring Security 설정
 ├── user/          # 회원가입, 로그인
 ├── game/          # KBO 경기 일정 관리
@@ -217,20 +341,107 @@ src/main/java/com/fullcount/
 ├── reservation/   # 선점, 만료(@Scheduled), 상태 관리
 └── payment/       # Toss Payments 연동, 단일 트랜잭션 처리
 ```
+```
+src/main/java/com/example/FullCount2/
+├── common/
+│   ├── config/
+│   │   └── SecurityConfig
+│   ├── enums/
+│   │   ├── ExceptionCode
+│   │   ├── GameSeatStatus
+│   │   ├── PaymentMethod
+│   │   ├── PaymentStatus
+│   │   ├── ReservationStatus
+│   │   └── UserRole
+│   ├── filter/
+│   │   └── JwtFilter
+│   ├── global/
+│   │   ├── BaseEntity
+│   │   ├── CommonResponse
+│   │   ├── CustomException
+│   │   └── GlobalExceptionHandler
+│   └── util/
+│       └── JwtUtil
+├── domain/
+│   ├── auth/  # JWT 필터, Spring Security 설정
+│   ├── game/  # KBO 경기 일정 관리
+│   ├── payment/  # 무통장 입금, Toss Payments 연동, 단일 트랜잭션 처리
+│   ├── reservation/  # 선점, 만료(@Scheduled), 상태 관리
+│   ├── seat/   # 좌석 정보, @Version 낙관적 락
+│   ├── section/
+│   ├── stadium/
+│   ├── team/
+│   └── user/  # 회원가입, 로그인
+└── FullCountApplication
+```
 
 <br>
 
 ## ⚠️ 트러블슈팅
 
-### 1. `@SpringBootApplication` 패키지 스캔 범위 오류
-- **문제:** 엔티티/레포지토리가 스캔되지 않아 빈 등록 실패
-- **원인:** 멀티 모듈 구조에서 기본 스캔 범위 밖에 위치
-- **해결:** `scanBasePackages`, `@EnableJpaRepositories`, `@EntityScan` 명시적 지정
+### 1. 스케줄러 N+1 문제 — 벌크 업데이트 적용
 
-### 2. 로컬 MySQL 인스턴스 충돌
-- **문제:** MySQL 포트 충돌로 애플리케이션 실행 불가
-- **원인:** 시스템에 MySQL 인스턴스가 2개 동시 실행
-- **해결:** `launchctl unload`로 불필요한 인스턴스 종료 후 재시작
+- **문제:** 만료 예매 3건 취소 시 쿼리 13번 발생 (SELECT 7번 + UPDATE 6번)
+- **원인:** `cancelExpired()`를 건별 루프 호출 + `GameSeat` LAZY 로딩으로 `.getGameSeat()` 호출마다 SELECT 추가
+- **해결:** `@Modifying` 벌크 UPDATE 2번으로 교체
+- **채택한 이유:**  데이터를 조회해 응답하는 기능이 아닌 만료 상태를 일괄 변경하는 로직임으로 JOIN FETCH 보다 벌크 UPDATE가 적합하다고 판단
+
+```java
+// ReservationSeatRepository — GameSeat 일괄 복구
+@Modifying
+@Query("""
+    UPDATE GameSeat gs SET gs.status = 'AVAILABLE'
+    WHERE gs.id IN (
+        SELECT rs.gameSeat.id FROM ReservationSeat rs
+        WHERE rs.reservation.status = 'HELD'
+        AND rs.reservation.expiredAt < :now
+    )
+""")
+int bulkRestoreExpiredGameSeats(@Param("now") LocalDateTime now);
+
+// ReservationRepository — 예매 일괄 취소
+@Modifying
+@Query("""
+    UPDATE Reservation r SET r.status = 'CANCELLED'
+    WHERE r.status = 'HELD' AND r.expiredAt < :now
+""")
+int bulkCancelExpired(@Param("now") LocalDateTime now);
+```
+
+| 항목 | 개선 전 | 개선 후 |
+|------|---------|---------|
+| 쿼리 수 (3건) | 13번 | **2번** |
+| 쿼리 수 (N건) | 1 + N×4번 | **2번** |
+
+### 2. Enum ordinal 변환 에러
+
+- **문제:** `@Enumerated(EnumType.STRING)` 추가 후 기존 DB 값과 매핑 실패
+- **원인:** `@Enumerated` 어노테이션 없으면 Hibernate가 기본적으로 ordinal(숫자) 방식으로 저장
+```
+HELD = 0 / CONFIRMED = 1 / CANCELLED = 2
+```
+`EnumType.STRING` 추가 후 문자열로 읽으려 하는데 DB에는 숫자가 저장되어 있어서 충돌 발생
+- **에러:**
+```
+No enum constant com.example.FullCount2.common.enums.ReservationStatus.0
+```
+- **해결:**
+
+엔티티 수정
+```java
+@Column(nullable = false, length = 20)
+@Enumerated(EnumType.STRING)
+private ReservationStatus status;
+```
+
+DB 데이터 마이그레이션
+```sql
+UPDATE reservations SET status = 'HELD'      WHERE status = '0';
+UPDATE reservations SET status = 'CONFIRMED' WHERE status = '1';
+UPDATE reservations SET status = 'CANCELLED' WHERE status = '2';
+```
+
+> Enum 필드에는 항상 `@Enumerated(EnumType.STRING)` 명시 필요. ordinal 방식은 Enum 순서 변경 시 데이터가 깨지므로 실무에서도 STRING 방식을 권장함
 
 <br>
 
@@ -239,6 +450,6 @@ src/main/java/com/fullcount/
 | 현재 구현 | 개선 방향 |
 |-----------|-----------|
 | 낙관적 락 (@Version) | Redis 분산 락으로 고트래픽 대응 |
-| @Scheduled 만료 처리 | Redis TTL 기반 이벤트 방식으로 전환 |
+| @Scheduled 만료 처리 (벌크 업데이트) | Redis TTL 이벤트 방식으로 전환 |
 | 로컬 실행 | Docker + AWS EC2 배포 |
 | LIKE 기반 경기 검색 | Elasticsearch 전문 검색 엔진으로 전환 |
