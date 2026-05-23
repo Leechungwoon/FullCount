@@ -21,8 +21,27 @@ public interface GameRepository extends JpaRepository<Game, Long> {
             @Param("homeTeamId") Long homeTeamId, //홈팀 필터
             @Param("awayTeamId") Long awayTeamId, //어웨이팀 ID 필터
             @Param("stadiumId") Long stadiumId, //구장 ID 필터
-            @Param("gameDate")LocalDate gameDate //경기 날짜 필터
-            );
+            @Param("gameDate") LocalDate gameDate //경기 날짜 필터
+    );
 
     Optional<Game> findById(Long gameId);
+
+    @Query("SELECT g FROM Game g " +
+            "JOIN FETCH g.homeTeam ht " +
+            "JOIN FETCH g.awayTeam at " +
+            "JOIN FETCH g.stadium s " +
+            "WHERE (:teamName IS NULL OR " +
+            "       LOWER(ht.name) LIKE LOWER(CONCAT('%', :teamName, '%')) OR " +
+            "       LOWER(ht.shortName) LIKE LOWER(CONCAT('%', :teamName, '%')) OR " +
+            "       LOWER(at.name) LIKE LOWER(CONCAT('%', :teamName, '%')) OR " +
+            "       LOWER(at.shortName) LIKE LOWER(CONCAT('%', :teamName, '%'))) " +
+            "AND (:stadiumName IS NULL OR " +
+            "       LOWER(s.name) LIKE LOWER(CONCAT('%', :stadiumName, '%'))) " +
+            "AND (:gameDate IS NULL OR cast(g.gameDateTime as LocalDate) = :gameDate) " +
+            "ORDER BY g.gameDateTime ASC")
+    List<Game> searchGames(
+            @Param("teamName") String teamName,
+            @Param("stadiumName") String stadiumName,
+            @Param("gameDate") LocalDate gameDate
+    );
 }
