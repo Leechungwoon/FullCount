@@ -1,5 +1,6 @@
 package com.example.FullCount2.domain.game.entity;
 
+import com.example.FullCount2.common.enums.GameSeatStatus;
 import com.example.FullCount2.common.global.BaseEntity;
 import com.example.FullCount2.domain.seat.entity.Seat;
 import jakarta.persistence.*;
@@ -27,7 +28,8 @@ public class GameSeat extends BaseEntity {
     private Seat seat;
 
     @Column(nullable = false, length = 20)
-    private String status = "AVAILABLE"; // AVAILABLE / HELD / SOLD
+    @Enumerated(EnumType.STRING) //DB에 문자열 저장
+    private GameSeatStatus status = GameSeatStatus.AVAILABLE; // AVAILABLE / HELD / SOLD
 
     @Version // 낙관적 락 핵심
     private int version;
@@ -36,10 +38,10 @@ public class GameSeat extends BaseEntity {
     private GameSeat(Game game, Seat seat) {
         this.game = game;
         this.seat = seat;
+        this.status = GameSeatStatus.AVAILABLE; //기본값 명시적으로 설정
     }
 
-    public void updateStatus(String status) {
+    public void updateStatus(GameSeatStatus status) {
         this.status = status;
     }
-
 }
