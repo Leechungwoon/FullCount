@@ -55,4 +55,17 @@ public class GameController {
 
         return ResponseEntity.ok(CommonResponse.success("좌석 조회가 완료 됐습니다.", responses));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<CommonResponse> searcjGamesApi(
+            @RequestParam(required = false) String team,
+            @RequestParam(required = false) String stadium,
+            @RequestParam(required = false) LocalDate date
+    ) {
+        // 핵심 비지니스
+        List<GameResponse> response = gameService.searchGames(team, stadium, date);
+
+        return ResponseEntity.ok(CommonResponse.success("경기가 조회됐습니다.", response));
+
+    }
 }

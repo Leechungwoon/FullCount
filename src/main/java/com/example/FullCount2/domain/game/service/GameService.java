@@ -40,7 +40,15 @@ public class GameService {
     //홈팀 경기 조회
     @Transactional(readOnly = true)
     public List<GameResponse> getHomeTeamGameList(Long teamId) {
-        return gameRepository.findByFilters(teamId,null,null,null)
+        return gameRepository.findByFilters(teamId, null, null, null)
+                .stream()
+                .map(GameResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GameResponse> searchGames(String teamName, String stadiumName, LocalDate gameDate) {
+        return gameRepository.searchGames(teamName, stadiumName, gameDate)
                 .stream()
                 .map(GameResponse::from)
                 .toList();
